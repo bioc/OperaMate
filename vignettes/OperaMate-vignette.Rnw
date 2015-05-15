@@ -1,0 +1,434 @@
+%\VignetteIndexEntry{An introduction to OperaMate}
+%\VignetteKeywords{Preprocessing, CellBasedAssays}
+%\VignettePackage{OperaMate} 
+
+\documentclass[10pt, oneside]{article}
+
+<<style-Sweave, eval=TRUE, echo=FALSE, results=tex>>=
+if (requireNamespace("BiocStyle", quietly=TRUE)) {
+    BiocStyle::latex()
+}
+@
+\usepackage{hyperref}
+
+\newcommand{\thetitle}{OperaMate: data importing, processing and
+  analysis for Opera High Content Screening System}
+\title{\textsf{\textbf{\thetitle}}} \author{Chenglin
+  Liu\\[1em]Shanghai Jiaotong University,\\ Shanghai,
+  China\\ \texttt{cliu@sjtu.edu.cn} \and Yixue Li\\[1em]Shanghai
+  Jiaotong Univeristy,\\ Shanghai, China\\ \texttt{yxli@sibs.ac.cn}}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+The \Rpackage{OperaMate} is intended to analyze intensity data derived 
+from the images from PerkinElmer's Opera High Content Screening System 
+(\url{http://www.perkinelmer.com/pages/020/cellularimaging/products/opera.xhtml})
+and intepreted by Columbus Image Data Storage and Analysis System
+(\url{http://www.perkinelmer.com/pages/020/cellularimaging/products/columbus.xhtml}).
+PerkinElmer's Opera High Content Screening System is the 
+state-of-the-art confocal microplate imaging solution for high throughput
+screening. The system works with complex disease models and offers various 
+solutions like protein expression, RNAi screening. 
+Its compatible tool Columbus image analysis system
+exports intensity data by analyzing the Opera images, 
+but lacks further processing and analysis to
+uncover the biological meaning underlying the image data. Although
+some existing tool like cellHTS \cite{cellHTS} can be used to process
+the intensity data, it requires massive configurations and data format
+modifications. Hence, we develop an R \cite{Rpackage} package 
+\Robject{OperaMate} especially to process the intensity data exported by Columbus system,
+which can fulfills the procedure of data importing, processing and analysis in
+an easy and efficient way.
+
+\section{Getting Started}
+\Rpackage{OperaMate} integrates the entire process of data importing,
+processing and analysis into one function, which is easy to operate
+for the users who are new to the R language. However, it is also very
+convinient to customize each step according to the pipeline built by
+this function, checking the immediate results of each step, and
+re-performing a specific step with different parameters to achieve the
+desire of the users.
+
+\subsection{Configration}\label{section:config}
+\Rpackage{OperaMate} requires two reference tables and a registered email address 
+at DAVID WebService \cite{DAVID} for data processing.
+\begin{description}
+\item[platemap] data.frame, the experiment information of each Columbus analysis report.
+  This table is required only if the report formats are not standarded. See
+  Section \ref{section:import} for more information.
+  
+  Required column names of \Robject{platemap}:
+  \begin{itemize}
+  \item file.name: character, the name of the report. 
+  \item format.type: character, only ''Tab'' and ''Matrix'' are supported in this version.
+  \item Barcode: character, the barcode of the plates.
+  \item rep.id: character, the ID to distinguish the replicated plates.
+  \item path: character, the full path of the report.
+  \end{itemize}
+  Refer to ?platemap for more information.
+\item[genemap] data.frame, the gene names and information of each well. The correponding file
+  is generated during the design of assays.
+  
+  Required column names of \Robject{genemap}:
+  \begin{itemize}
+  \item Barcode:  character, the barcode of the plates.
+  \item Well: character, the well ID.
+  \item GeneSymbol: character, the annotated gene names of the well.
+  \item Gene.ID: character, Entrez gene ID. 
+  \end{itemize}
+  Refer to ?genemap for more information.
+\item[email] the email registered at DAVID WebService 
+  (\url{http://david.abcc.ncifcrf.gov/content.jsp?file=WS.html}).
+  See Section \ref{section:sigDA} for more information.
+\end{description}
+
+\subsection{Running OperaMate}
+<<run_pipeline, echo=TRUE,eval=TRUE,include=FALSE>>=
+library(OperaMate) 
+data(platemap) 
+data(genemap) 
+platemap$path <- file.path(system.file("Test",package = "OperaMate"),
+                           platemap$path)
+(outpath <- tempdir()) 
+operaReport <- operaMate(cellformat = "Others",
+                         platemap = platemap,genemap = genemap, 
+                         Prefix.Barcode = "DSIMGA",outpath=outpath, 
+                         expwell = paste0(rep(LETTERS[2:15],each=20),
+                           rep(formatC(3:22,width=2,flag=0),times=14)), 
+                         ctrwell = c("C23","E23","G23"), 
+                         norm.method="Both",BatcheffectSample="exp",
+                         email = "cliu@sjtu.edu.cn",david.type="all", 
+                         Sig.method="ktsd",width=960,height=960)
+names(operaReport)
+@
+
+A brief description of the parameters are as follows:
+  \begin{enumerate}
+\item \Robject{cellformat}, format of the to be processed reports. See
+  Section \ref{section:import} for more information.
+\item \Robject{datapath} or \Robject{platemap}, character of the
+  dictionary of the files or a platemap table.
+See Section \ref{section:import} for more information.
+\item \Robject{genemap}, genemap table.
+\item \Robject{outpath}, the dictionary of the output reports and
+  figures.
+\item \Robject{Prefix.Barcode}, character of the prefix of the barcode
+  in the genemap, e.g. DSIMGA.
+\item \Robject{ctrwell}, character of the control well IDs.
+\item \Robject{expwell}, character of the sample well IDs.
+\item \Robject{email}, the email registered for the DAVID WebService. 
+\end{enumerate}
+
+See the mannual for more details about this function.
+
+\subsection{Description of output}
+All the reports and figures are located in the outpath.
+
+\begin{enumerate}
+\item OperaMateReport.txt: the analysis report.
+\item DAVID-*.txt: the DAVID functional analysis reports.
+\item *.before.after.normalization.png: the data comparison before and
+  after normalization.
+\item *.vocanoPlot.png: the volcano plot which highlights the detected
+  hits.
+\item Statistics.png: the histogram of the number of the hits.
+\item *.sd2mean.png: the figure in the quality control step. See
+  Section \ref{section:qc} for more details.
+\item *.Distribution.png: the figure in the hit identification
+  step. See Section \ref{section:sigDA} for more details.
+\end{enumerate}                
+
+\section{Class declaration}
+\subsection{The expData class}\label{section:expData}
+Each \Robject{expData} object stores data of one imaging analysis
+report of the Opera system generatd by Columbus$^{TM}$ Image Data
+Storage and Analysis System. The report includes different types of
+data of one plate, distinguished by the paramters. The format of the
+report is set in the analysis system. \Rpackage{OperaMate} supports
+two most popular formats by now: the matrix and the table. The class
+requires the following information:
+
+\begin{enumerate}
+\item \Robject{name}, name of the plate
+\item \Robject{path}, path of the importing file
+\item \Robject{rep.id}, replicate ID
+\item \Robject{exp.id}, barcode of the experiment
+\item \Robject{format}, report format
+  \begin{enumerate}
+  \item \Robject{Matrix}: matrix format in the Columbus analysis
+    system
+  \item \Robject{Tab}: table format in the Columbus analysis system
+  \end{enumerate}
+\end{enumerate}
+
+An example of creating a new expData object is as follows:
+<<create_one_plate, eval=TRUE>>= 
+(onePlate <- expData(name = "DSIMGA02-s1",
+                     path = file.path( 
+                       system.file("Test",package = "OperaMate"),
+                       "Matrix", "130504-s1-02.txt" ),
+                     rep.id = "s1", exp.id = "DSIMGA02", 
+                     format = "Matrix"))
+@
+%def
+
+However, it is highly recommended to import all files using the
+function \Robject{loadAll}. Details will be referred in Section
+\ref{section:import}.
+
+\subsection{The cellData class}
+An object of \Robject{expData} class stores all data corresponding to
+one parameter of the reports. It organizes the data as a matrix with
+rows are well IDs and columns the plate IDs. This class requires the
+following information:
+\begin{enumerate}
+\item \Robject{name}, one parameter of the report
+\item \Robject{ctwell}, the well IDs of the controls, e.g. B05
+\item \Robject{expwell}, the well IDs of the samples, e.g. C12
+\end{enumerate}
+
+The \Robject{expData} objects provide different places for different
+levels of the data: the raw data in the \Robject{origin.data} slot;
+the normalized data in the \Robject{norm.data} slot and data after
+quality control in the \Robject{qc.data} slot. In addition, the
+general quality of each plate is stored in the \Robject{plate.quality}
+slot.
+
+An example of creating a new cellData object is as follows:
+<<create_one_cell, eval=TRUE>>= 
+(oneCell <- cellData(name = "Average Intensity of Nuclei", 
+                     expwell = paste0(rep(LETTERS[2:15],each=20),
+                       rep(formatC(3:22,width=2,flag=0),times=14)),
+                     ctrwell = c("C23","E23","G23")))
+@
+%def
+\section{Data importing and processing}
+\subsection{Raw data importing and re-organization}\label{section:import}
+\Rpackage{OperaMate} imports all reports of the Columbus analysis
+system to \Robject{expData} objects using the function
+\Robject{loadAll}, and then re-organizes them to several
+\Robject{cellData} objects corresponding to different parameters of
+the reports. The function \Robject{loadAll} requires all reports are
+of the same data format and are placed in the same location. In
+addition, all file names should follow the rule:
+*-replicateID-plateID.txt, e.g. 20130101-s1-03.txt. ('*' should not
+include the character '-'.)
+
+If the file formats can meet these requirements, assign
+\Robject{cellformat} as ''Matrix'' or ''Tab'', and pass the location
+of the files to \Robject{datapath}. Otherwise, you need to assign
+\Robject{cellformat} as ''Others'', and specify the information of
+each file by a data.frame variable. See Section \ref{section:config} for 
+its description.
+
+Then, you can import the data and construct \Robject{cellData} objects as follows:
+<<import_data, eval=TRUE>>= 
+## Data importing 
+lstPlates <- loadAll(cellformat="Others",platemap=platemap) 
+## lstPlates <- loadAll(cellformat="Matrix",
+##                         datapath=dirname(platemap$path[4])) 
+##Data re-organization 
+oneCell <- cellLoad( oneCell,lstPlates )
+str(oneCell["origin.data"])
+@
+
+If the reports are of other formats, you can redefine the function
+\Robject{parseTemplete}. See the manual for more information.
+
+\subsection{Data normalization}
+Data normalization is to reducing the systematical technical variance
+among the raw data. Technical sources of variation are unavoidable
+during experiments, and different amounts of variance occur in
+different rounds of experiments, which are referred as ''batch
+effect''. As to the plate-based assays, different techincal variations
+are added to different plates, and different locations of well are
+suffered with different amounts of noise, especially the edge
+wells. The latter phenomenon is called ''edge effects''.
+
+Good normalization methods help to attenuate the batch effects. The
+\Rpackage{OperaMate} package provides several normalization methods
+including ''Ctr'', ''Plate'',''Both'',''Z''. The ''Ctr'' method
+divides data by the mean of the plate controls. This approach is often
+favored by biologists. However, as to the large sample screening, it
+is usually not as accurate as methods which take all samples into
+consideration. All of the other methods consider all samples, and use
+the majority of samples as a negative reference. The ''Plate'' method
+divides data by the median of their corresponding plates. ''Both''
+employs the Tukey's median polish procedure, and divides data by the
+median of their corresponding plates and wells recursively. "Z" is the
+robust z-score method which firstly substracts data by the median of
+their plates, and then divides them by the median absolute deviation
+of the plates. The default normalization method is ''Both''. However,
+if no normalization methods are expected, you can assign the
+\Robject{norm.method} as ''None''.
+
+An example is as follows: 
+<<norm_cell, eval=TRUE>>= 
+oneCell <- cellNorm(oneCell, norm.method="Both") 
+str(oneCell["norm.data"])
+@ 
+%def
+
+Contrasting colors are very useful to visualize the batch effects. The
+\Rpackage{OperaMate} package provides three ways, the ''pricipal
+component analysis (PCA), hierarchical clustering (heatmap), the
+scatter plot of the medians. Heatmap method performs hieratical
+clustering to data matrix, and a large region of distinguishing color
+indicates the corresponding data with different technical
+variations. PCA represents data as 2-dimension points based on their
+two pricipal components. Points distance from others indicate data
+with excessive noises. Median method plots the median of plates and
+well positions. Comparisons before and after normalization will be
+shown side by side if the normalization process has been
+done. Examples are shown as shown in Figure \ref{fig:normplot}.
+
+<<batch_methods,eval=TRUE>>=
+cellViz(oneCell,exps="exp",type="heatmap",outpath=outpath,gDevice="png")
+cellViz(oneCell,exps="exp",type="PCA",outpath=outpath,gDevice="png",width=960,height=960)
+cellViz(oneCell,exps="exp",type="median",outpath=outpath,gDevice="png",width=960,height=960)
+@
+
+\begin{figure}[tp]
+  \begin{center}
+    \includegraphics{normplot}
+    \caption{\label{fig:normplot}% Batch effect visualization. (a)
+      heatmap method (b) PCA method.}
+  \end{center}
+\end{figure}
+
+In addition, you can check a specific plate by \Robject{plateViz}.
+
+<<visualize_onePlate, eval=TRUE>>=
+plateViz(oneCell,ID="DSIMGA04-s2",gDevice="png",outpath=outpath,width=960,height=960)
+@
+
+\subsection{Quality control }\label{section:qc}
+Before using the data for biological analysis, you should verify that
+your data passes quality control checks. \Robject{OperaMate} provides
+several ways to do quality control.  Firstly, it checks if the
+duplicated plates have similar distributions. Student t tests are
+performed between every pair of duplicated plates, and the low quality
+plates can be found which have small p-values (less than qth, default:
+0.05) comparing to others. The data of these plates are replaced by
+the mean of their duplicates. The qualities of the plates are stored
+in the \Robject{plate.quality} slot.  Next, it performs the quality
+control well by well. We fit a distribution between the SDs and mean
+values based on all data. If the duplicated wells have SDs much larger
+than the fitted ones considering the means, they are considered to
+have low quality. The fitted distribution of SD to mean and the
+density distribution of the differences between the SDs and their
+fitted ones can be visualized in this step, as shown in Figure
+\ref{fig:qcplot}. The visualization can be disabled by assigning
+gDevice=''None''. An example is as follows: 
+
+<<qc_cell, eval=TRUE>>=
+oneCell <- cellQC( oneCell, qth = .05,
+                  gDevice="png",outpath=outpath,width=960,height=960)
+str(oneCell["qc.data"])
+head(oneCell["plate.quality"])
+@
+
+\begin{figure}[tp]
+  \begin{center}
+    \includegraphics[width=5cm]{qcplot}
+    \caption{\label{fig:qcplot}% (a) The relations of mean and
+      s.d. among the replicated samples. (b) the density distribution
+      of the differences between the s.d.s and the expected ones based
+      on the fitted spline function.}
+  \end{center}
+\end{figure}
+
+\section{Hit identification and biological analysis}\label{section:sigDA}
+The ''hits'' are the samples which are meaningfully different from the
+negative controls. The compulsory method is the t-test between the
+samples and the controls. The hits are the samples those significantly
+differ from the negative controls based on t-test ( default: p-value
+less than 0.05). This method is combined with the following methods to
+reduce a high false positives:
+\begin{enumerate}
+\item \Robject{ksd}, $mean \pm k\:standard\,deviation$. The hits are
+  the samples those surpass k (default: 3) standard deviation relative
+  to the mean. This approach is often used with z-score normalization.
+\item \Robject{kmsd}, $median \pm k\:median\,absolute\,deviation$. The
+  hits are the samples those surpass k (default: 3) median absolute
+  deviation relative to median. It is more robust than \Robject{ksd}
+  as to a nonnormal distribution.
+\item \Robject{ktsd}, t-score method. It is more effective if the data
+  is t-distributed. You can check the fitness to a t distribution by
+  the QQ plot.
+\end{enumerate}
+
+An example is as follows: 
+<<sig_detection,eval=TRUE>>= 
+oneCell <- cellSig(oneCell, method="ktsd",adjust.method="fdr",
+                   gDevice="png",outpath=outpath,width=960,height=960) 
+names(oneCell["Sig"])
+@
+
+In addition, the signicance of the hits can be exihibited by a volvano
+plot,as shown in Figure \ref{fig:sig}(a).  
+<<sig_vcplot, eval=TRUE>>=
+labels <- c("Axin1") 
+names(labels) <- c("DSIMGA04:C07")
+cellSigplot(oneCell,gDevice="png",outpath=outpath,
+            highlight.label=labels,width=960,height=960)
+@
+
+\begin{figure}[tp]
+  \begin{center}
+    \includegraphics{sigplot}
+    \caption{\label{fig:sig}(a) Volcano plot between the log2
+      intensity and the log10 p-value in the multiple t-tests. The red
+      points are hits statistically and quantitatively significantly
+      different from the negative controls. (b) The counts of the
+      detected hits.}
+  \end{center}
+\end{figure}
+
+Moreover, the potential biological meanings can be interpreted with
+the help of DAVID Webservice. You are required to register at
+\url{http://david.abcc.ncifcrf.gov/webservice/register.htm} and provide the
+registered email address the to function. The description of \Robject{genemap}
+is referred in Section \ref{section:config}.
+<<sig_analysis,eval=TRUE>>= 
+chart <- cellSigAnalysis(oneCell,genemap,
+                         email="cliu@sjtu.edu.cn", type = "all", 
+                         david.terms = list(GO=c("GOTERM_BP_FAT","GOTERM_MF_FAT",
+                                              "GOTERM_CC_FAT")), 
+                         file = file.path(outpath,"DAVIDReports.txt"),
+                         gDevice="png",outpath=outpath,width=960,height=960)
+colnames(chart) 
+@
+
+\section{Summarization}
+At last, all processed data and the significant hits of all data type
+are summarized to a single report, which is easy to check using
+Microsoft Office Excel or other softwares. The numbers of hits are
+visualized by a histogram, as shown in Figure \ref{fig:sig}(b).
+
+<<report, eval=TRUE>>= 
+anno.data <- GenerateReport(list(oneCell),genemap,
+                            file=file.path(outpath,"OperaMateReports.txt"),
+                            gDevice="png",outpath=outpath,width=960,height=960) 
+colnames(anno.data) 
+@
+
+\section{Acknowledgement}
+We thank Li Mao and his advisor Lin Li for providing the original
+screening data generated by the Columbus system. The example data in
+the package are synthesis data generated based on their providing
+data.
+
+\section{Session info}
+<<session_info, echo=FALSE>>= 
+sessionInfo() 
+@
+
+\bibliography{OperaMate-vignette}
+
+\end{document}
