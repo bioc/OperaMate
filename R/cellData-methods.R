@@ -195,8 +195,8 @@ cellViz <- function(object,exps=c("all","exp","ctr"),
 ## the range of [median-3mad, median+3mad]
 ## @param ... arguments to be passed to \code{pheatmap}
 ## @return Invisibly a list of component by \code{pheatmap}.
+#' @importFrom grid pushViewport grid.newpage grid.text gpar
 ## @docType methods
-#' @import grid
 #' @import pheatmap
 cellHeatmap <- function(
   data, fontsize=15,
