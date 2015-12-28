@@ -5,63 +5,38 @@
 \alias{cellSigAnalysis}
 \title{Hits function analysis}
 \usage{
-cellSigAnalysis(object, genemap, email, type = c("all", "high", "low"),
-  david.terms = NULL, count = 2L, threshold = 0.1, showTermNum = NA,
-  showTermBy = "PValue", showTermCol = "blue", file = NA,
-  outpath = "./", gDevice = "dev.new", ...)
+cellSigAnalysis(object, genemap, organism, type = c("High", "Low"),
+  file = NULL, ...)
 }
 \arguments{
 \item{object}{a cellData object}
 
-\item{genemap}{the mapping file of all samples}
+\item{genemap}{a data frame, the well-gene specification table}
 
-\item{email}{the email for the DAVID WebService registration}
+\item{organism}{organism name.}
 
-\item{type}{type=c("all","high","low"), all hits or only the high/low
-expressed hits to analysis}
+\item{type}{include both high and low expressed hits or one of them.}
 
-\item{david.terms}{a list of DAVID annotation categories
+\item{file}{the filename of the enrichment table (default: disabled)}
 
-                   Default: list(GO=c("GOTERM_BP_FAT","GOTERM_MF_FAT",
-"GOTERM_CC_FAT"),PATHWAY=c( "KEGG_PATHWAY","REACTOME_PATHWAY","BIOCARTA"))}
-
-\item{count}{numeric, number of items}
-
-\item{threshold}{numeric, threshold in the DAVID analysis}
-
-\item{showTermNum}{numeric, number of terms to show in the figure}
-
-\item{showTermBy}{character, the order of the DAVID chart,
-showTermBy is one of the column names of the chart.}
-
-\item{showTermCol}{character, color of the bars in the figure}
-
-\item{file}{the path of the DAVID report to generate to.
-file=NA disables report generation.}
-
-\item{outpath}{a character string naming the location the figures to
-generate to}
-
-\item{gDevice}{the graphic device (default: dev.new).
-gDevice=NA generates no figure}
-
-\item{...}{arguments of the graphic device}
+\item{...}{the arguments of \code{gprofiler}.}
 }
 \value{
-a data frame of the DAVID report with annotated well IDs
-and gene symbols
+a data frame of the functional report from gProfiler
 }
 \description{
-Performs function analysis using DAVID Web Service
+Performs function analysis using gProfileR
+}
+\details{
+genemap must include colnames "Barcode","Well","GeneSymbol".
+organism name can be referred to g:Profiler tool.
+For example, human: hsapiens, mouse: mmusculus.
 }
 \examples{
 data(demoCell)
-data(genemap)
-## Please register your email at DAVID WebService
-chart <- cellSigAnalysis(oneCell,genemap,
-                        email="cliu@sjtu.edu.cn",type="all",
-                        file=NA)
-colnames(chart)
-
+genemap <- read.csv(file.path(system.file("demoData", package = "OperaMate"),
+"genemap.csv"), stringsAsFactors = FALSE)
+chart <- cellSigAnalysis(oneCell, genemap, organism = "mmusculus")
+head(chart)
 }
 

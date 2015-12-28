@@ -5,10 +5,13 @@
 \alias{parseTemplete}
 \title{Data extraction from one report}
 \usage{
-parseTemplete(onePlate)
+parseTemplete(onePlate, well.digits = 2)
 }
 \arguments{
 \item{onePlate}{an expData object}
+
+\item{well.digits}{the digits of the well column in the well-gene
+specification file}
 }
 \value{
 an \code{expData} object with initialized slot \code{data}.
@@ -18,11 +21,8 @@ Extracts data in the report to the slot \code{data} in the \code{expData}
 object. An inner function of \code{\link{loadAll}}.
 }
 \examples{
-data(platemap)
-platemap$path <- file.path(system.file("Test",package = "OperaMate"),
-platemap$path)
-lstPlates <- loadAll(cellformat="Tab",datapath=dirname(platemap$path[1]))
-onePlate <- lstPlates[[1]]
-parseTemplete(onePlate)
+datapath <- file.path(system.file("Test", package = "OperaMate"), "Tab")
+lstPlates <- loadAll(cellformat = "Tab", datapath = datapath )
+onePlate <- parseTemplete(lstPlates[[1]])
 }
 

@@ -8,13 +8,13 @@
 \usage{
 cellNorm(object, norm.method)
 
-\S4method{cellNorm}{cellData}(object, norm.method = c("Both", "Plate", "None",
-  "Z", "Ctr"))
+\S4method{cellNorm}{cellData}(object,
+  norm.method = getOption("opm.normalization.method"))
 }
 \arguments{
 \item{object}{a cellData object}
 
-\item{norm.method}{norm.method=c("Both","Plate","None","Z","Ctr")}
+\item{norm.method}{getOption("opm.normalization.method")}
 }
 \value{
 a \code{celldata} object with initialized slot \code{norm.data}
@@ -23,11 +23,11 @@ a \code{celldata} object with initialized slot \code{norm.data}
 Normalizes raw data based on different normalization methods.
 }
 \details{
-Method description: "Both" employes the median polish algorithm which
+Method description: "MP" employes the median polish algorithm which
 divides data by the median of their plates and wells recursively, while
-"Plate" only divides data by the median of their plates;"Z" substracts
+"PMed" only divides data by the median of their plates; "Z" substracts
 data by their plate medians, and then divides by the median absolute
-deviations; "Ctr" divides data by the mean of their plate controls;
+deviations; "Ctr" divides data by the mean of their plate negative controls;
 "None" avoids the data normalization in this step. The first three
 methods are based on the assumption that most samples display no
 biological effects in the assay be analyzed. They are often more
@@ -35,7 +35,7 @@ effective than "Ctr" method as to the high throughput screening.
 }
 \examples{
 data(demoCell)
-oneCell <- cellNorm(oneCell, norm.method="Plate")
+oneCell <- cellNorm(oneCell, norm.method = "MP")
 str(oneCell["norm.data"])
 }
 

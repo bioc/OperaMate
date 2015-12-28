@@ -1,128 +1,176 @@
 #' Data process and analysis pipeline
 #' 
 #' A systematical pipeline for opera data importing, normalization, quality
-#' control, signature gene detection and visualization.
-#' 
-#' @param cellformat character specifying the format of the reports
-#' @param datapath character specifying the location of the reports
-#' @param platemap data frame, required when cellformat = "Others".
-#' See an example as \code{\link{platemap}}.
-#' @param Prefix.Barcode character, the Barcode prefix
-#' @param genemap data frame, the mapping file of all samples.
-#' See an example as \code{\link{genemap}}.
-#' @param cellnames vector of character specifying the data types.
-#' The types are the parameters in the Columbus system reports.
-#' @param ctrwell a vector of characters specifying the control well IDs
-#' @param expwell a vector of characters specifying the control sample IDs
-#' @param norm.method norm.method = c("Both","Plate","Z","Ctr","None")
-#' @param gDevice the graphic device (default: png)
-#' @param outpath a character string naming the location the figures to
-#' generate to
-#' @param BatcheffectSample c("all", "exp", "ctr"), "exp" and "ctr" consider
-#' only the sample and control wells respectively.
-#' @param BatcheffectType  c("heatmap","median","PCA-plate","PCA-well")
-#' @param BatcheffectifCompare logic, comparison before and after normalization
-#' will be shown if the data normalization has been processed.
-#' @param qth numeric, the threshold in quality control
-#' @param Sig.method c("ktsd","ksd","kmsd")
-#' @param Sig.threshold numeric, the threshold for hit identification
-#' @param anno.file the path to generate the report
-#' @param viz.par list, arguments to be passed to \code{\link{cellViz}}
-#' @param email the email for the DAVID webservice registration
-#' @param david.terms a list of DAVID annotation categories
-#' @param david.count numeric, number of items
-#' @param david.threshold numeric, threshold in the DAVID analysis
-#' @param david.termN numeric, number of terms to show in the figure
-#' @param david.type c("all","high","low")
-#' @param threshold.pvalue numeric, threshold of pvalues in the t-test between
-#' the sample and control replicates
-#' @param ... arguments of the graphic device
-#' @return a list of two components:  a list of cellData objects and  the
-#' annotated table of each well
+#' control, hit detection, analysis, and visualization.
+#' @param configFile the location of the file specifying all parameters
+#' @param gDevice the graphics device 
+#' @param ... addition arguments for graphics devices
+#' @return a list of three components:  a list of cellData objects, the
+#' annotated table of each well, and the enrichment analysis table
 #' @export
 #' @examples
-#' data(platemap); data(genemap)
-#' platemap$path <- file.path(system.file("Test",package = "OperaMate"),
-#'                            platemap$path)
-#' (outpath <- tempdir())
-#' operaReport <- operaMate(cellformat = "Others",
-#' platemap = platemap,genemap = genemap,
-#' Prefix.Barcode = "DSIMGA",outpath=outpath,
-#' expwell = paste0(rep(LETTERS[2:15],each=20),
-#' rep(formatC(3:22,width=2,flag=0),times=14)),
-#' ctrwell = c("C23","E23","G23"),
-#' email = "cliu@@sjtu.edu.cn",
-#' norm.method="Both",BatcheffectSample="exp",
-#' Sig.method="ktsd",david.type="all",
-#' width=960,height=960)
-#' head(operaReport$data.anno)
+#' configFile <- file.path(system.file("demoData", package = "OperaMate"), "demoParam.txt")
+#' operaReport <- operaMate(configFile, gDevice = "png")
+#' head(operaReport$report)
 #' 
-operaMate <- function(cellformat=c("Tab","Matrix","Others"),datapath="./",
-                      platemap=NULL, genemap=NULL,
-                      cellnames=c("Average.Intensity.of.Nuclei",
-                        "Average.Intensity.of.Cytoplasm",
-                        "Average.Total.Intensity","Average.Intensity.Ratio"),
-                      ctrwell = NULL,
-                      expwell = NULL,
-                      Prefix.Barcode = "DSIMGA",
-                      norm.method=c("Both","Plate","Z","Ctr","None"),
-                      gDevice="png",
-                      outpath="./",
-                      BatcheffectSample = c("all", "exp", "ctr"),
-                      BatcheffectType=c("heatmap","median","PCA"),
-                      BatcheffectifCompare=TRUE,
-                      viz.par = list(),
-                      qth = 0.05,
-                      Sig.method=c("ktsd","ksd","kmsd"),
-                      Sig.threshold = NULL,
-                      threshold.pvalue=0.05,
-                      anno.file = file.path(outpath,"OperaMateReport.txt"),
-                      email = NA,
-                      david.type = c("all","high","low"),
-                      david.terms = NULL,
-                      david.count=2L,
-                      david.threshold=0.1,
-                      david.termN=NA,
-                      ...
-                      ){
-    if(!file.exists(outpath)){
-        dir.create(outpath)
-    }
-    message("[",format(Sys.time(), "%m-%d-%Y %T"),"]")
-    message(" OperaMate Data Processing & Analysis")
-    message("********************************************************")
-    message("Loading data ...")
-    lstPlates <- loadAll(cellformat=cellformat,datapath=datapath,
-                         platemap=platemap,prefix=Prefix.Barcode)
-    cellnames.1 <- cellnames[cellnames %in% names(lstPlates[[1]]["data"])]
-    if("Average.Total.Intensity" %in% cellnames){
-        cellnames.1 <- c("Average.Intensity.of.Nuclei",
-                         "Average.Intensity.of.Cytoplasm", cellnames.1)
-    }
-    lstCells <- list()
-    for(cellname in cellnames.1){
-        oneCell <- cellData(cellname,ctrwell=ctrwell,expwell=expwell)
-        lstCells[[cellname]] <- cellLoad(oneCell,lstPlates)
+operaMate <- function(configFile, gDevice = "png", ...) {
+
+    ## To avoid warning in RCheck
+    platemap <- NULL; eg.filename <- NULL; exp.id <- NULL
+    rep.id <- NULL;  cellnames <- NULL; barcode <- NULL; well.digits <- NULL
+    genemap <- NULL; cellformat <- NULL; cell.digits <- NULL
+    correlationTh <- NULL; zfactorTh <- NULL; cellnumberTh <- NULL
+    positive.control <- NULL; negative.control <- NULL
+    neglect.well <- NULL; case.well <- NULL; norm.method <- NULL
+    opm.qcType <- NULL; opm.QC.threshold <- NULL; sep <- NULL
+    if.replace.badPlateData <- NULL; sig.method <- NULL
+    sig.threshold <- NULL; sig.pvalue.threshold <- NULL
+    verbose <- NULL; summaryFile <- NULL; organism <- NULL
+    functionFile <- NULL; egFilename <- NULL; datapath <- NULL
+
+    configParser <- function(configFile) {
+        config <- file(configFile, open = "r")
+        lines <- readLines(config)
+        ID <- grep("^#", lines)
+        lines <- gsub(" *", "", lines[-ID])
+        lstlines <- strsplit(lines, ":")
+        i <- 0
+        for (line in lstlines) {
+            i <- i + 1
+            if (length(line) == 1) {
+                eval(parse(text = paste(line[1]," = NULL", sep = "")))
+            } else {
+                tmp <- paste("\"", unlist(strsplit(line[2], ",")), "\"", sep = "")
+                if (length(tmp) > 1){
+                    tmp <- paste("c(", paste(tmp, collapse = ","), ")", sep = "")
+                }
+                eval(parse(text = paste("assign(\"", line[1], "\", ", tmp,
+                             ", parent.env(environment()))", sep = "")))
+            }
+        }
+        if (is.null(datapath)){
+            stop("You must provide the location of files!")
+        } else if (datapath == "operaMateDemoLocation") {
+            assign("datapath",
+                   file.path(system.file("Test", package = "OperaMate"), "Matrix"),
+                   parent.env(environment()))
+        }
+        if (!file.exists(datapath)) {
+            stop("The location does not exists!")
+        }
+        if (is.null(outpath)) {
+            assign("outpath", getOption("opm.outpath"), parent.env(environment()))
+        }
+        if (outpath == "operaMateDemoOutput") {
+            assign("outpath", tempdir(), parent.env(environment()))
+        }
+        if (!is.null(platemap)) {
+            assign("platemap", read.csv(platemap, stringsAsFactors = FALSE),
+                   parent.env(environment()))
+        }
+        if (is.null(genemap)) {
+            warning("No well-gene specification file provide.
+                 Functional analysis will not perform.")
+        } else {
+            if (genemap == "operaMateDemoGenemap")
+              genemap <- file.path(system.file("demoData", package = "OperaMate"),
+                                   "genemap.csv")
+            assign("genemap", read.csv(genemap, stringsAsFactors = FALSE),
+                   parent.env(environment()))
+        }
+
+        if (is.null(eg.filename) | is.null(rep.id) | is.null(exp.id)
+            | is.null(sep) | is.null(barcode)) {
+            warning("File format  is not clear. The standard format will be used.")
+            egFilename <- getOption("opm.filename.example")
+        } else{
+            egFilename <- list(eg.filename = eg.filename, rep.id = rep.id,
+                               exp.id = exp.id, sep = sep, barcode = barcode)
+        }
+        assign("egFilename", egFilename, parent.env(environment())) 
+        if (is.null(cellnames)) {
+            stop ("Please specify the terms to analyze!")
+        }
+        opm.QC.threshold <- vector()
+        if (!is.null(correlationTh))
+          opm.QC.threshold["correlation"] <- correlationTh
+        if (!is.null(zfactorTh))
+          opm.QC.threshold["zfactor"] <- zfactorTh
+        if (!is.null(cellnumberTh))
+          opm.QC.threshold["cellnumber"] <- cellnumberTh
+        mode(opm.QC.threshold) <- "numeric"
+        assign("opm.QC.threshold", opm.QC.threshold, parent.env(environment()))
+        mode(sig.threshold) <- "numeric"
+        mode(sig.pvalue.threshold) <- "numeric"
+        mode(well.digits) <- "numeric"
+        mode(if.replace.badPlateData) <- "logical"
+        mode(verbose) <- "logical"
+        assign("sig.threshold", sig.threshold, parent.env(environment()))
+        assign("sig.pvalue.threshold", sig.pvalue.threshold, parent.env(environment()))
+        assign("well.digits", well.digits, parent.env(environment()))
+        assign("if.replace.badPlateData", if.replace.badPlateData, parent.env(environment()))
+        assign("verbose", verbose, parent.env(environment()))
+        
+        close(config)
     }
 
+    configParser(configFile) #Parse all parameters from text file
+
+    if (is.null(outpath)) {
+        outpath <- getOption("opm.outpath")
+    }
+    if (!file.exists(outpath)) {
+        dir.create(outpath)  #Create the output folder
+    }
+
+    op <- options("device")
+    options("device" = gDevice)
+    
+    message("[",format(Sys.time(), "%m-%d-%Y %T"),"]")
+    message(" OperaMate Data Processing & Analysis")  #Log head
+    message("********************************************************")
+
+    message("Loading data ...")
+    lstPlates <- loadAll(cellformat = cellformat, datapath = datapath,
+                         egFilename = egFilename, well.digits = well.digits,
+                         platemap = platemap)
+    
+    cellnames.1 <- cellnames[cellnames %in% names(lstPlates[[1]]["data"])]
+    if("Average.Total.Intensity" %in% cellnames){
+        cellnames.1 <- unique(c("Average.Intensity.of.Nuclei",
+                                "Average.Intensity.of.Cytoplasm", cellnames.1))
+    }
+    lstCells <- list()
+    for(cellname in c("Cells.Analyzed", cellnames.1)){
+        oneCell <- cellData(cellname)
+        lstCells[[cellname]] <- cellLoad(oneCell, lstPlates,
+                                         positive.ctr = positive.control,
+                                         negative.ctr = negative.control,
+                                         neglect.well = neglect.well,
+                                              expwell = case.well)
+    }
+    cell.cellNum <- lstCells[["Cells.Analyzed"]]
+    lstCells <- lstCells[-1]
+    lstCells <- lapply(lstCells, function(cell) {
+        cellNumLoad(cell, cell.cellNum)
+    })
+    
     message("Data normalization ...")
     lstCells <- lapply(lstCells,function(cell){
-        cellNorm(cell,norm.method=norm.method)
+        cellNorm(cell, norm.method = norm.method)
     })
-    message("Data biases visualization ...")
+    message("Data visualization ..." )
     for(cell in lstCells){
-        for(type in BatcheffectType){
-            cellViz(cell,exps=BatcheffectSample,type=type,gDevice=gDevice,
-                    outpath=outpath,ifCompare=BatcheffectifCompare,
-                    control.par=viz.par,...)
-        }
+        cellViz(cell, outpath = outpath, ...)
     }
+
     message("Quality control ...")
     lstCells <- lapply(lstCells,function(cell){
-        cellQC(cell, qth=qth,
-               outpath=outpath,
-               gDevice=gDevice,...)
+        cellQC(cell, qcType = opm.qcType, qc.threshold = opm.QC.threshold,
+               replace.badPlateData = if.replace.badPlateData,
+               outpath = outpath, ...)
     })
+
     if("Average.Total.Intensity" %in% cellnames){
         lstCells[["Average.Total.Intensity"]] <-
           cellMean(lstCells[["Average.Intensity.of.Nuclei"]],
@@ -130,37 +178,34 @@ operaMate <- function(cellformat=c("Tab","Matrix","Others"),datapath="./",
                    "Average.Total.Intensity")
     }
     lstCells <- lstCells[cellnames]
+
     message("Hit detection ...")
-    lstCells <- lapply(lstCells,function(cell){
-        cell <- cellSig(cell, method=Sig.method,
-                        threshold.method = Sig.threshold,
-                        threshold.pvalue = threshold.pvalue,
-                        adjust.method = "fdr",
-                        outpath=outpath,
-                        gDevice=gDevice,...)
-        cellSigplot(cell,
-                    outpath=outpath,
-                    gDevice=gDevice,...)
-        return(cell)
-    })
-    message("Annotation ... ")
-    data.anno <- GenerateReport(lstCells,genemap,file=anno.file,
-                                outpath=outpath,
-                                gDevice=gDevice,...)
-    message("Hit analysis ...")
-    david.anno <- lapply(lstCells,function(cell){
-        lapply(david.type,function(type){
-            cellSigAnalysis(cell,genemap,email,
-                            type=type,
-                            david.terms = david.terms,
-                            count=david.count,
-                            threshold=david.threshold,
-                            showTermNum=david.termN,
-                            file=file.path(outpath,
-                              paste0("DAVID-",cell["name"],"-",type,".txt")),
-                            outpath=outpath,gDevice=gDevice,...)
-        })
+    lstCells <- lapply(lstCells, function(cell){
+        cell <- cellSig(cell, method = sig.method,
+                        th = sig.threshold, thPVal = sig.pvalue.threshold,
+                        adjust.method = getOption("opm.adjust.methods"),
+                        digits = getOption("opm.threshold.digits"),
+                        plot = TRUE, outpath = outpath, ...)
+        cellSigPlot(cell, outpath = outpath, ...)
+        cell
     })
 
-    return(list(lstCells = lstCells,data.anno=data.anno))
+    message("Annotation ... ")
+    report <- generateReport(lstCells, genemap, verbose = verbose, 
+                             file = summaryFile,
+                             outpath = outpath, plot = TRUE, ...)
+
+    message("Hit analysis ...")
+    if (is.null(genemap)) {
+        funReport <- NULL
+    } else{
+        funReport <- lapply(lstCells,function(cell){
+            chart <- cellSigAnalysis(cell, genemap, organism,
+                            file = file.path(outpath, functionFile), ...)
+            cellSigAnalysisPlot(chart, prefix = cell@name, outpath = outpath,
+                                ...)
+            chart
+        })
+    }
+    return(list(lstCells = lstCells, report = report, funReport = funReport))
 }

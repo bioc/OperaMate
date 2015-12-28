@@ -5,17 +5,22 @@
 \alias{loadAll}
 \title{Data importing}
 \usage{
-loadAll(cellformat, datapath = "./", platemap = NULL, prefix = "DSIMGA")
+loadAll(cellformat = NULL, datapath = "./",
+  egFilename = getOption("opm.filename.example"), well.digits = 2,
+  platemap = NULL)
 }
 \arguments{
-\item{cellformat}{character specifying the format of the reports}
+\item{cellformat}{character specifying the format of the reports. Enable when
+\code{platemap} is NULL.}
 
-\item{datapath}{character specifying the location of the reports}
+\item{datapath}{character specifying the location of the reports. Enable when
+\code{platemap} is NULL.}
 
-\item{platemap}{data frame, required when cellformat = "Others".
-See an example as \code{\link{platemap}}.}
+\item{egFilename}{a file name example}
 
-\item{prefix}{character, the Barcode prefix, e.g. "DSIMGA"}
+\item{well.digits}{the digits of the well column in the well-gene}
+
+\item{platemap}{data frame. See an example as \code{\link{platemap}}.}
 }
 \value{
 a list of \code{expData} objects
@@ -25,26 +30,38 @@ Initializes a list of \code{expData} objects from the Columbus system
 reports.
 }
 \details{
-"Tab" and "Matrix" are corresponding to table and matrix format in the
-Columbus system report. They requires all reports of the same format, in
-the same location, and with the file names as  *-replicateID-plateID.txt.
-Otherwise,choose "Others" and specify the parameter of each file in
-\code{platemap}. If the reports are of other cellformats, you can specify
+To facility the automatic file name parsing, the reports obtained from
+Columbus system should be of the same format, and located under the same
+directory. Users can obtain this plate specification table for further
+modification. An example of the table can be referred by \code{\link{platemap}}.
+After modification, users can submit a plate speficication data frame
+to parameter \code{platemap}.
+The data format supported for the reports are "Tab" and "Matrix".
+If the reports are of other cellformats, you can specify
 its cellformat and rewrite the function \code{parseTemplete} to import the
-data seperately. See the example to find the format for the slot \code{data}
-and \code{wellID}.
+data seperately.
+
+An example of egFilename = list(eg.filename = "0205-s2-01.txt",
+rep.id = "s2", exp.id = "01", sep = "-", barcode = "DSIMGA01").
+well.digits: In the well-gene specification file, if the well ID is
+B1, B2, ..., B11, the well.digit = 1; while B01, B02, ..., B11,
+the well.digit = 2; and B001, B002, ..., B011, the well.digit =3.
 }
 \examples{
+# Data frame \\code{platemap} provided
 data(platemap)
-platemap$path <- file.path(system.file("Test",package = "OperaMate"),
-platemap$path)
-## Not consistent format
-lstPlates <- loadAll(cellformat="Others",platemap=platemap)
-## Consistent format
-## lstPlates <- loadAll(cellformat="Tab",datapath=dirname(platemap$path[1]))
-## User defined format
-## lstPlates <- loadAll(dirname(platemap$path[1]),cellformat="usrDef")
-## lstPlates <- lapply(lstPlates,function(onePlate) parseTemplete(onePlate))
+platemap$Path <- file.path(
+system.file("Test", package = "OperaMate"), platemap$Path)
+lstPlates <- loadAll(platemap = platemap)
+#
+# Consistent file name format
+datapath <- file.path(system.file("Test", package = "OperaMate"), "Tab")
+egFilename <- list(eg.filename = "Tab.130504-s1-01.txt",
+rep.id = "s1", exp.id = "01", sep = "-",
+barcode = "DSIMGA01")
+lstPlates <- loadAll(cellformat = "Tab", datapath = datapath,
+egFilename = egFilename, well.digits = 2)
+#
 lstPlates[[1]]
 }
 

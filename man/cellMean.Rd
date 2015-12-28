@@ -4,7 +4,6 @@
 \name{cellMean}
 \alias{cellMean}
 \alias{cellMean,cellData,cellData,character-method}
-\alias{cellMean,cellData-method}
 \title{Mean of two cellData objects}
 \usage{
 cellMean(cell1, cell2, name)
@@ -27,7 +26,7 @@ signature detection.
 }
 \examples{
 data(demoCell)
-meanCell <- cellMean(oneCell,oneCell,"meanCell")
+meanCell <- cellMean(oneCell, oneCell, "meanCell")
 meanCell
 }
 
