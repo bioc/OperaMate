@@ -369,8 +369,8 @@ the format of plateID:wellID.")
 #' @docType methods
 #' @examples
 #' data(demoCell)
-#' genemap <- read.csv(file.path(system.file("demoData", package = "OperaMate"),
-#' "genemap.csv"), stringsAsFactors = FALSE)
+#' genemap <- read.csv(file.path(system.file("Test", package = "OperaMate"),
+#' "demoData", "genemap.csv"), stringsAsFactors = FALSE)
 #' chart <- cellSigAnalysis(oneCell, genemap, organism = "mmusculus")
 #' head(chart)
 #' @import gProfileR

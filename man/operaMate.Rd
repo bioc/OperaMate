@@ -22,7 +22,8 @@ A systematical pipeline for opera data importing, normalization, quality
 control, hit detection, analysis, and visualization.
 }
 \examples{
-configFile <- file.path(system.file("demoData", package = "OperaMate"), "demoParam.txt")
+configFile <- file.path(system.file("Test", package = "OperaMate"),
+"demoData", "demoParam.txt")
 operaReport <- operaMate(configFile, gDevice = "png")
 head(operaReport$report)
 

@@ -34,8 +34,8 @@ For example, human: hsapiens, mouse: mmusculus.
 }
 \examples{
 data(demoCell)
-genemap <- read.csv(file.path(system.file("demoData", package = "OperaMate"),
-"genemap.csv"), stringsAsFactors = FALSE)
+genemap <- read.csv(file.path(system.file("Test", package = "OperaMate"),
+"demoData", "genemap.csv"), stringsAsFactors = FALSE)
 chart <- cellSigAnalysis(oneCell, genemap, organism = "mmusculus")
 head(chart)
 }

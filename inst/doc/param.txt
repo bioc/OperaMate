@@ -1,0 +1,69 @@
+# ##############################################
+#    Please fill these blanks after the colon.
+# ##############################################
+# Make sure all space are replaced by dot(.). For example, 
+# Average Intensity Ratio is replaced by Average.Intensity.Ratio.
+#
+# The location of the files generated from the Columbus system
+        datapath : 
+# The location of output files 
+         outpath :
+# The control well ID. 
+# Leave case.wells as blank will include all wells except positive & negative 
+# control and neglect.well. Please write in one line seperated by comma (,).
+positive.control :
+negative.control :
+    neglect.well :
+       case.well :
+# The location of the well-gene specification file (.csv (comma separator)). 
+# Make sure the first row is the colum names, eg. Barcode, Well, GeneSymbol
+         genemap : 
+# The organism
+        organism : 
+# The location of the file name specification file (.csv (comma separator)). 
+# Leave it blank if you have a consistent report format and file name format.
+        platemap :
+# The format of the files, Matrix or Tab (Table format)
+      cellformat : 
+#
+# ###########################################
+#    Please check these paramters
+# ###########################################
+#
+# An example of the file name. For example, if your file names 
+# for.example_0205-s2-1.txt means the experiment is performed on plate 1, 
+# and it is the second replicate, the barcode showed on the well-gene 
+# specification file is DSIHGA01, the paramters are as follows.
+   eg.filename : for.example_0205-s2-1.txt
+        rep.id : s2
+        exp.id : 1
+           sep : -
+       barcode : DSIHGA01
+# In the well-gene specification file, if the well ID is B1, B2, ..., B11, 
+# the well.digits = 1; while B01, B02, ..., B11, the well.digits = 2; 
+# and B001, B002, ..., B011, the well.digits = 3.
+   well.digits : 2
+# Analyze items. For example: Average.Intensity.of.Nuclei. 
+# We add a new item Average.Total.Intensity if you are interested in the total 
+# intensity from both the nucleus and the cytoplasm.
+# Please write in one line seperated by comma (,).
+     cellnames : Average.Intensity.of.Nuclei, Average.Intensity.of.Cytoplasm, Average.Total.Intensity, Average.Intensity.Ratio
+# Normalization method MP, PMed, Z, Ctr, None
+   norm.method : MP
+# Quality control method plateCorrelation, wellSd, zFactor, cellNumber
+    opm.qcType : plateCorrelation, wellSd, zFactor, cellNumber
+# Quality control threshold
+ correlationTh : 0.8
+     zfactorTh : 0.5
+  cellnumberTh : 50
+if.replace.badPlateData : TRUE
+# Hit detection method stable, ksd, kmsd
+    sig.method : stable
+ sig.threshold : 0.05
+sig.pvalue.threshold : 0.05
+# Require a detailed report or only the selected hit list
+       verbose : TRUE
+# The report file name
+   summaryFile : summary.txt
+# The report of gene enrichment analysis
+  functionFile : functions.txt

@@ -446,8 +446,8 @@ showPlate <- function(data, pos.control = NULL, neg.control = NULL,
 #' @export
 #' @examples
 #' data(demoCell)
-#' genemap <- read.csv(file.path(system.file("demoData", package = "OperaMate"),
-#' "genemap.csv"), stringsAsFactors = FALSE)
+#' genemap <- read.csv(file.path(system.file("Test", package = "OperaMate"),
+#' "demoData", "genemap.csv"), stringsAsFactors = FALSE)
 #' report <- generateReport(list(oneCell), genemap, verbose = FALSE,
 #' plot = FALSE)
 #' str(report)
@@ -784,8 +784,8 @@ addNatoSudoRep <- function(lst.data, check.repNo, max.repNo){
 #' @docType methods
 #' @examples
 #' data(demoCell)
-#' genemap <- read.csv(file.path(system.file("demoData", package = "OperaMate"),
-#' "genemap.csv"), stringsAsFactors = FALSE)
+#' genemap <- read.csv(file.path(system.file("Test", package = "OperaMate"),
+#' "demoData", "genemap.csv"), stringsAsFactors = FALSE)
 #' chart <- cellSigAnalysis(oneCell, genemap, organism = "mmusculus")
 #' op <- options("device")
 #' options("device" = "png")

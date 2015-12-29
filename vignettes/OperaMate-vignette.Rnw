@@ -57,7 +57,7 @@ should be supplied. The templete can be obtained together with the package named
 Users are required to fill the blanks after colons. Leave them as blank if NULL is expected.
 An example can be obtained by :
 <<demo_config, echo = FALSE, eval = TRUE, include = FALSE>>=
-file <- file.path(system.file("demoData", package = "OperaMate"), "demoParam.txt")
+file <- file.path(system.file("Test", package = "OperaMate"), "demoData", "demoParam.txt")
 ## file.show(file)
 @ 
 Required column names of \Robject{genemap}:
@@ -68,7 +68,7 @@ Required column names of \Robject{genemap}:
 \end{itemize}
 An example can be obtained by :
 <<demo_genemap, echo = FALSE, eval = TRUE, include = FALSE>>=
-file <- file.path(system.file("demoData", package = "OperaMate"), "genemap.csv")
+file <- file.path(system.file("Test", package = "OperaMate"), "demoData", "genemap.csv")
 genemap <- read.csv(file)
 head(genemap, n = 5)
 @ 
@@ -76,7 +76,7 @@ head(genemap, n = 5)
 \subsection{Running OperaMate}
 <<run_pipeline, echo = TRUE, eval = TRUE, include = FALSE>>=
 library(OperaMate) 
-configFile <- file.path(system.file("demoData", package = "OperaMate"), "demoParam.txt")
+configFile <- file.path(system.file("Test", package = "OperaMate"), "demoData", "demoParam.txt")
 operaReport <- operaMate(configFile, gDevice = "png")
 names(operaReport)
 @
@@ -346,8 +346,8 @@ specification table. The description of \Robject{genemap}
 is referred in Section \ref{section:config}. The p-values barplot can be
 visualized, as shown in Figure \ref{fig:sig}(d)
 <<sig_analysis, eval = TRUE>>= 
-genemap <- read.csv(file.path(system.file("demoData", package = "OperaMate"),
-                              "genemap.csv"), stringsAsFactors = FALSE)
+genemap <- read.csv(file.path(system.file("Test", package = "OperaMate"),
+                              "demoData", "genemap.csv"), stringsAsFactors = FALSE)
 chart <- cellSigAnalysis(oneCell, genemap, organism = "mmusculus")
 head(chart, n = 5)
 cellSigAnalysisPlot(chart, prefix = oneCell@name, outpath = tempdir())

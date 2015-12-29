@@ -9,7 +9,8 @@
 #' annotated table of each well, and the enrichment analysis table
 #' @export
 #' @examples
-#' configFile <- file.path(system.file("demoData", package = "OperaMate"), "demoParam.txt")
+#' configFile <- file.path(system.file("Test", package = "OperaMate"),
+#' "demoData", "demoParam.txt")
 #' operaReport <- operaMate(configFile, gDevice = "png")
 #' head(operaReport$report)
 #' 
@@ -73,8 +74,8 @@ operaMate <- function(configFile, gDevice = "png", ...) {
                  Functional analysis will not perform.")
         } else {
             if (genemap == "operaMateDemoGenemap")
-              genemap <- file.path(system.file("demoData", package = "OperaMate"),
-                                   "genemap.csv")
+              genemap <- file.path(system.file("Test", package = "OperaMate"),
+                                   "demoData", "genemap.csv")
             assign("genemap", read.csv(genemap, stringsAsFactors = FALSE),
                    parent.env(environment()))
         }
