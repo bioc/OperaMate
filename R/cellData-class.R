@@ -438,7 +438,12 @@ setMethod("cellSig", signature = "cellData", function(
         goodWellID <- 1:nrow(object@qc.data)
     }
     repdata <- object@qc.data[goodWellID,
-                              - grep("pass", colnames(object@qc.data))]
+                              - grep("pass", colnames(object@qc.data)),
+                              drop = FALSE]
+    if (nrow(repdata) == 0) {
+        return(object)
+    }
+    
     repdata <- repdata[, -ncol(repdata), drop = FALSE]
 
     if (ncol(repdata) < 3) {

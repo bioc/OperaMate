@@ -294,6 +294,10 @@ cellSigPlot <- function(object, outpath = getOption("opm.outpath"),
                         highlight.label.color = getOption("opm.sig.label.color"),
                         ...) {
     
+    if (length(object["Sig"]) == 0) {
+        stop("No data have passed quality control.")
+    }
+    
     if(is.null(object["Sig"]$pvalue)){
         stop("This method requires three or more replicates.")
     }
@@ -306,7 +310,7 @@ cellSigPlot <- function(object, outpath = getOption("opm.outpath"),
                               pvalue = -log10(objSig$pvalue),
                               threshold = vc.threshold)
 
-    if.close.device <- gDevice.new(paste(object["name"], "vocalnoPlot",sep="."), outpath, ...)
+    if.close.device <- gDevice.new(paste(object["name"], "volcanoPlot",sep="."), outpath, ...)
     exp <- NULL; pvalue <- NULL; label <- NULL
     ## Just for avoiding warnings in Rcheck
     g <- ggplot(data = volcanoData, aes(x = exp, y = pvalue)) +
