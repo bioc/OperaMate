@@ -1,5 +1,5 @@
 Package: OperaMate
-Version: 1.11.0
+Version: 1.11.1
 Date: 2015-12-28
 Title: An R package of Data Importing, Processing and Analysis for
     Opera High Content Screening System
@@ -20,3 +20,4 @@ biocViews: Preprocessing, CellBasedAssays, Normalization,
     QualityControl
 NeedsCompilation: no
 RoxygenNote: 5.0.1
+PackageStatus: Deprecated
